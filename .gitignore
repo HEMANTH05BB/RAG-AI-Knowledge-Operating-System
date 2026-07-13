@@ -1,0 +1,9 @@
+.DS_Store
+**/.DS_Store
+ai-knowledge-os/backend/venv/
+ai-knowledge-os/backend/data/qdrant/
+ai-knowledge-os/backend/data/uploads/
+ai-knowledge-os/backend/data/chunks/
+ai-knowledge-os/backend/data/cache/
+**/__pycache__/
+**/*.pyc

@@ -1,0 +1,31 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(
+    title="AI Knowledge Operating System API",
+    description="Backend API for the AI Knowledge Operating System",
+    version="0.1.0"
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "message": "Welcome to the AI Knowledge Operating System API",
+        "docs_url": "/docs"
+    }
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy"
+    }
