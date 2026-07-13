@@ -1,0 +1,6 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/ai-knowledge-os/backend/venv/bin/python",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/ai-knowledge-os/backend"
+    ]
+}
