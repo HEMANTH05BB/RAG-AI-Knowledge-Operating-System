@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.upload import router as upload_router
 
 app = FastAPI(
     title="AI Knowledge Operating System API",
     description="Backend API for the AI Knowledge Operating System",
     version="0.1.0"
 )
+
+# Register routers
+app.include_router(upload_router)
 
 # Configure CORS
 app.add_middleware(
