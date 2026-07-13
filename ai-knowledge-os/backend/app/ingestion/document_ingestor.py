@@ -17,7 +17,7 @@ class DocumentIngestor:
         self.vector_store = vector_store or VectorStoreService()
         # SentenceTransformer loads the model locally (downloads on first run)
         self.model = SentenceTransformer(model_name)
-        self.vector_size = self.model.get_sentence_embedding_dimension()
+        self.vector_size = self.model.get_embedding_dimension()
         
     def extract_text(self, file_path: str) -> List[Dict[str, Any]]:
         """

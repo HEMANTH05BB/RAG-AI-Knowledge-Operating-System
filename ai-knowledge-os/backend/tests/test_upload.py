@@ -23,7 +23,7 @@ class TestUploadAPI(unittest.TestCase):
         self.st_patcher = patch('app.ingestion.document_ingestor.SentenceTransformer')
         self.mock_st_class = self.st_patcher.start()
         self.mock_st = MagicMock()
-        self.mock_st.get_sentence_embedding_dimension.return_value = 384
+        self.mock_st.get_embedding_dimension.return_value = 384
         self.mock_st.encode.return_value.tolist.return_value = [0.1] * 384
         self.mock_st_class.return_value = self.mock_st
 

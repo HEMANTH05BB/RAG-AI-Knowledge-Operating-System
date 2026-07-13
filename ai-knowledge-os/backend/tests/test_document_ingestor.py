@@ -13,7 +13,7 @@ class TestDocumentIngestor(unittest.TestCase):
         self.mock_transformer_class = self.model_patcher.start()
         
         self.mock_model = MagicMock()
-        self.mock_model.get_sentence_embedding_dimension.return_value = 384
+        self.mock_model.get_embedding_dimension.return_value = 384
         self.mock_model.encode.side_effect = lambda text: np.array([0.1] * 384)
         self.mock_transformer_class.return_value = self.mock_model
 
