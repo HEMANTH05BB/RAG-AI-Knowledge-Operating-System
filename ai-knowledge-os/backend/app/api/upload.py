@@ -4,21 +4,20 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from app.ingestion.document_ingestor import DocumentIngestor
 from app.services.vector_store import VectorStoreService
 
+from app.config import settings
+
 router = APIRouter(prefix="/api/upload", tags=["Upload"])
 
-UPLOAD_DIR = "data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# Initialize UPLOAD_DIR
-UPLOAD_DIR = "data/uploads"
+# Initialize UPLOAD_DIR from settings
+UPLOAD_DIR = settings.UPLOAD_DIR
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("")
 async def upload_file(
     file: UploadFile = File(...),
     collection_name: str = Form("knowledge_base"),
-    chunk_size: int = Form(500),
-    chunk_overlap: int = Form(100)
+    chunk_size: int = Form(settings.CHUNK_SIZE),
+    chunk_overlap: int = Form(settings.CHUNK_OVERLAP)
 ):
     """
     Upload a document, extract text, split it into chunks, generate embeddings,

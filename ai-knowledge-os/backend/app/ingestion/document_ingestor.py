@@ -9,14 +9,17 @@ from sentence_transformers import SentenceTransformer
 
 from app.services.vector_store import VectorStoreService
 
+from app.config import settings
+
 class DocumentIngestor:
-    def __init__(self, vector_store: Optional[VectorStoreService] = None, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, vector_store: Optional[VectorStoreService] = None, model_name: Optional[str] = None):
         """
         Initializes the Document Ingestor with a vector store service and a local embedding model.
         """
         self.vector_store = vector_store or VectorStoreService()
         # SentenceTransformer loads the model locally (downloads on first run)
-        self.model = SentenceTransformer(model_name)
+        model = model_name or settings.EMBEDDING_MODEL_NAME
+        self.model = SentenceTransformer(model)
         self.vector_size = self.model.get_embedding_dimension()
         
     def extract_text(self, file_path: str) -> List[Dict[str, Any]]:

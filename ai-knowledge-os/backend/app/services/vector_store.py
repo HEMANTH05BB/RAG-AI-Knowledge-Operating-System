@@ -3,14 +3,17 @@ from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest_models
 
+from app.config import settings
+
 class VectorStoreService:
-    def __init__(self, db_path: str = "data/qdrant"):
+    def __init__(self, db_path: Optional[str] = None):
         """
         Initializes the Qdrant client in serverless/local-disk mode.
         Data is persisted in the specified path.
         """
-        os.makedirs(db_path, exist_ok=True)
-        self.client = QdrantClient(path=db_path)
+        path = db_path or settings.QDRANT_PATH
+        os.makedirs(path, exist_ok=True)
+        self.client = QdrantClient(path=path)
         
     def create_collection(self, collection_name: str, vector_size: int, distance=rest_models.Distance.COSINE) -> bool:
         """
