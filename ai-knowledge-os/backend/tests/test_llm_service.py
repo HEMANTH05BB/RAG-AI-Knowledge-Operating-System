@@ -115,5 +115,35 @@ class TestLLMService(unittest.TestCase):
         self.assertIn("It stores embeddings.", user_prompt)
         self.assertIn("What is Qdrant?", user_prompt)
 
+    @patch('app.services.llm_service.requests.post')
+    def test_llm_fallback_routing_flow(self, mock_post):
+        # First post raises exception; second post succeeds
+        mock_err_response = MagicMock()
+        mock_err_response.raise_for_status.side_effect = RuntimeError("Service Unavailable")
+        
+        mock_success_response = MagicMock()
+        mock_success_response.json.return_value = {
+            "choices": [{"message": {"content": "Fallback successful answer."}}]
+        }
+        mock_success_response.raise_for_status = MagicMock()
+        
+        mock_post.side_effect = [mock_err_response, mock_success_response]
+        
+        service = LLMService(api_key=self.openrouter_key, model_name="first-fail-model")
+        service.fallback_model_1 = "backup-success-model"
+        
+        res = service.generate_response(prompt="Test fallback")
+        
+        self.assertEqual(res, "Fallback successful answer.")
+        self.assertEqual(mock_post.call_count, 2)
+        
+        # Verify first call model
+        first_call_payload = mock_post.call_args_list[0][1]["json"]
+        self.assertEqual(first_call_payload["model"], "first-fail-model")
+        
+        # Verify second call model
+        second_call_payload = mock_post.call_args_list[1][1]["json"]
+        self.assertEqual(second_call_payload["model"], "backup-success-model")
+
 if __name__ == "__main__":
     unittest.main()

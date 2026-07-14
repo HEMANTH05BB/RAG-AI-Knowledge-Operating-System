@@ -11,10 +11,18 @@ class LLMService:
     def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
         """
         Initializes the LLM Service.
-        It detects OpenRouter key vs native Google Gemini key formats automatically.
+        It detects OpenRouter key vs native Google Gemini key formats automatically,
+        and sets up main and fallback models.
         """
         self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model_name = model_name or settings.LLM_MODEL_NAME
+        
+        # Load main and fallback models from config
+        self.main_model = model_name or settings.LLM_MAIN_MODEL
+        self.fallback_model_1 = settings.LLM_FALLBACK_MODEL_1
+        self.fallback_model_2 = settings.LLM_FALLBACK_MODEL_2
+        
+        # Keep back-compat property model_name
+        self.model_name = self.main_model
         
         # Simple heuristics to detect OpenRouter keys vs Google Gemini keys
         if self.api_key.startswith("sk-or-"):
@@ -22,7 +30,8 @@ class LLMService:
             self.base_url = "https://openrouter.ai/api/v1/chat/completions"
         else:
             self.provider = "google"
-            self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
+            # For native Google, URL template changes per model name; we build it dynamically per call
+            self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def generate_response(
         self, 
@@ -31,15 +40,33 @@ class LLMService:
         temperature: float = 0.7
     ) -> str:
         """
-        Generates a textual response for the given prompt from the configured LLM provider.
+        Generates a textual response for the given prompt, trying the main model first,
+        and falling back to the remaining models if the call fails.
         """
         if not self.api_key:
             raise ValueError("API key is not configured. Please set GEMINI_API_KEY in your .env file.")
             
-        if self.provider == "openrouter":
-            return self._call_openrouter(prompt, system_instruction, temperature)
-        else:
-            return self._call_google(prompt, system_instruction, temperature)
+        models_to_try = [
+            self.main_model,
+            self.fallback_model_1,
+            self.fallback_model_2
+        ]
+        # Filter out empty entries
+        models_to_try = [m for m in models_to_try if m]
+        
+        last_exception = None
+        for model in models_to_try:
+            try:
+                logger.info(f"Attempting LLM generation with model: {model}")
+                if self.provider == "openrouter":
+                    return self._call_openrouter_with_model(model, prompt, system_instruction, temperature)
+                else:
+                    return self._call_google_with_model(model, prompt, system_instruction, temperature)
+            except Exception as e:
+                logger.warning(f"Model {model} failed with error: {e}. Trying fallback...")
+                last_exception = e
+                
+        raise RuntimeError(f"LLM generation failed for all configured models. Last error: {last_exception}")
 
     def generate_rag_response(
         self, 
@@ -69,7 +96,7 @@ ANSWER:"""
         
         return self.generate_response(prompt, system_instruction=sys_inst, temperature=0.3)
 
-    def _call_openrouter(self, prompt: str, system_instruction: Optional[str], temperature: float) -> str:
+    def _call_openrouter_with_model(self, model: str, prompt: str, system_instruction: Optional[str], temperature: float) -> str:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -83,7 +110,7 @@ ANSWER:"""
         messages.append({"role": "user", "content": prompt})
         
         payload = {
-            "model": self.model_name,
+            "model": model,
             "messages": messages,
             "temperature": temperature
         }
@@ -92,19 +119,13 @@ ANSWER:"""
             response = requests.post(self.base_url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
             res_data = response.json()
-            
-            # OpenRouter / chat completions response structure:
-            # choices[0].message.content
             return res_data["choices"][0]["message"]["content"]
-            
         except Exception as e:
-            logger.error(f"OpenRouter API call failed: {e}")
-            raise RuntimeError(f"LLM generation failed: {e}")
+            logger.error(f"OpenRouter API call failed for model {model}: {e}")
+            raise RuntimeError(f"OpenRouter API call failed: {e}")
 
-    def _call_google(self, prompt: str, system_instruction: Optional[str], temperature: float) -> str:
-        # Build Google Gemini API payload
-        # Native URL requires key parameter
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+    def _call_google_with_model(self, model: str, prompt: str, system_instruction: Optional[str], temperature: float) -> str:
+        url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
         headers = {"Content-Type": "application/json"}
         
         contents = [{"parts": [{"text": prompt}]}]
@@ -125,14 +146,10 @@ ANSWER:"""
             response = requests.post(url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
             res_data = response.json()
-            
-            # Google Gemini response structure:
-            # candidates[0].content.parts[0].text
             return res_data["candidates"][0]["content"]["parts"][0]["text"]
-            
         except Exception as e:
-            logger.error(f"Google Gemini API call failed: {e}")
-            raise RuntimeError(f"LLM generation failed: {e}")
+            logger.error(f"Google Gemini API call failed for model {model}: {e}")
+            raise RuntimeError(f"Google Gemini API call failed: {e}")
 
     def generate(self, prompt: str) -> str:
         """

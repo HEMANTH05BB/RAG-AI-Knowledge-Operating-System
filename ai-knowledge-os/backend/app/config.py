@@ -6,7 +6,10 @@ load_dotenv()
 
 class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "google/gemini-2.5-flash")
+    LLM_MAIN_MODEL: str = os.getenv("LLM_MAIN_MODEL", "mistralai/mistral-7b-instruct:free")
+    LLM_FALLBACK_MODEL_1: str = os.getenv("LLM_FALLBACK_MODEL_1", "meta-llama/llama-3.1-8b-instruct:free")
+    LLM_FALLBACK_MODEL_2: str = os.getenv("LLM_FALLBACK_MODEL_2", "google/gemma-2-9b-it:free")
+    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", LLM_MAIN_MODEL)
     QDRANT_PATH: str = os.getenv("QDRANT_PATH", "data/qdrant")
     EMBEDDING_MODEL_NAME: str = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "500"))
