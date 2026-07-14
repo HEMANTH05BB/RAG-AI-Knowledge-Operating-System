@@ -33,10 +33,12 @@ def extract_youtube_video_id(url: str) -> Optional[str]:
     """
     Extracts 11-character video ID from a YouTube URL.
     """
+    if "youtube.com" not in url and "youtu.be" not in url and "youtube-nocookie.com" not in url:
+        return None
+        
     patterns = [
-        r"(?:v=|\/)([0-9A-Za-z_-]{11}).*",
-        r"youtu\.be\/([0-9A-Za-z_-]{11})",
-        r"embed\/([0-9A-Za-z_-]{11})"
+        r"(?:v=|\/watch\?v=|\/embed\/|\/v\/|shorts\/|live\/)([0-9A-Za-z_-]{11})",
+        r"youtu\.be\/([0-9A-Za-z_-]{11})"
     ]
     for pattern in patterns:
         match = re.search(pattern, url)
