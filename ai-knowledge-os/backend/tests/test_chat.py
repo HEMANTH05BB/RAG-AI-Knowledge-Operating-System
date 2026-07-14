@@ -17,7 +17,7 @@ class TestChatAPI(unittest.TestCase):
         self.mock_vs = MagicMock()
         self.mock_vs_class.return_value = self.mock_vs
         
-        self.st_patcher = patch('app.api.chat.SentenceTransformer')
+        self.st_patcher = patch('app.retrieval.embedding_service.SentenceTransformer')
         self.mock_st_class = self.st_patcher.start()
         self.mock_st = MagicMock()
         self.mock_st.get_embedding_dimension.return_value = 384

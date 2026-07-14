@@ -51,8 +51,8 @@ class TextChunker:
         Splits text recursively using a list of separators (e.g. paragraphs, lines, sentences).
         This attempts to keep semantic blocks (like sentences or paragraphs) in single chunks.
         """
-        size = chunk_size or self.chunk_size
-        overlap = chunk_overlap or self.chunk_overlap
+        size = chunk_size if chunk_size is not None else self.chunk_size
+        overlap = chunk_overlap if chunk_overlap is not None else self.chunk_overlap
         seps = separators or ["\n\n", "\n", ". ", " ", ""]
         
         if not text:

@@ -9,12 +9,17 @@ from app.ingestion.document_ingestor import DocumentIngestor
 class TestDocumentIngestor(unittest.TestCase):
     def setUp(self):
         # Patch SentenceTransformer to run fully offline with mock embeddings
-        self.model_patcher = patch('app.ingestion.document_ingestor.SentenceTransformer')
+        # Reset EmbeddingService singleton cache for clean class isolation
+        from app.retrieval.embedding_service import EmbeddingService
+        EmbeddingService._instance = None
+        EmbeddingService._model = None
+
+        self.model_patcher = patch('app.retrieval.embedding_service.SentenceTransformer')
         self.mock_transformer_class = self.model_patcher.start()
         
         self.mock_model = MagicMock()
         self.mock_model.get_embedding_dimension.return_value = 384
-        self.mock_model.encode.side_effect = lambda text: np.array([0.1] * 384)
+        self.mock_model.encode.side_effect = lambda texts: np.array([[0.1] * 384] * (len(texts) if isinstance(texts, list) else 1))
         self.mock_transformer_class.return_value = self.mock_model
 
         # Set up paths for test resources and test vector store

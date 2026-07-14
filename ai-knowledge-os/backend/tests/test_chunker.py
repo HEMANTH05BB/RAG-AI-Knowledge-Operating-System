@@ -24,7 +24,7 @@ class TestTextChunker(unittest.TestCase):
     def test_split_recursively_paragraph(self):
         text = "This is paragraph one.\n\nThis is paragraph two.\n\nThis is paragraph three."
         # If chunk_size is 30, it should split at paragraphs "\n\n"
-        chunks = self.chunker.split_recursively(text, chunk_size=30, chunk_overlap=5)
+        chunks = self.chunker.split_recursively(text, chunk_size=30, chunk_overlap=0)
         self.assertEqual(len(chunks), 3)
         self.assertEqual(chunks[0], "This is paragraph one.")
         self.assertEqual(chunks[1], "This is paragraph two.")
@@ -43,7 +43,7 @@ class TestTextChunker(unittest.TestCase):
     def test_split_recursively_long_words(self):
         # Word longer than chunk_size
         text = "supercalifragilisticexpialidocious" # 34 chars
-        chunks = self.chunker.split_recursively(text, chunk_size=10, chunk_overlap=2)
+        chunks = self.chunker.split_recursively(text, chunk_size=10, chunk_overlap=0)
         # Should split on fallback characters
         self.assertTrue(len(chunks) > 1)
         self.assertEqual("".join(chunks), text)

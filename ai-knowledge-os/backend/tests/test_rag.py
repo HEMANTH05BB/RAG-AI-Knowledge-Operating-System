@@ -8,22 +8,19 @@ class TestRAGAPI(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
         
-        # Patch dependencies in the new rag.py namespace
-        self.indexer_patcher = patch('app.api.rag.QdrantIndexer')
-        self.mock_indexer_class = self.indexer_patcher.start()
+        # Patch the global instances directly in the rag module namespace
         self.mock_indexer = MagicMock()
-        self.mock_indexer_class.return_value = self.mock_indexer
+        self.indexer_patcher = patch('app.api.rag.indexer', self.mock_indexer)
+        self.indexer_patcher.start()
         
-        self.es_patcher = patch('app.api.rag.EmbeddingService')
-        self.mock_es_class = self.es_patcher.start()
         self.mock_es = MagicMock()
         self.mock_es.embed.return_value = [0.03] * 384
-        self.mock_es_class.return_value = self.mock_es
+        self.es_patcher = patch('app.api.rag.embedder', self.mock_es)
+        self.es_patcher.start()
         
-        self.llm_patcher = patch('app.api.rag.LLMService')
-        self.mock_llm_class = self.llm_patcher.start()
         self.mock_llm = MagicMock()
-        self.mock_llm_class.return_value = self.mock_llm
+        self.llm_patcher = patch('app.api.rag.llm', self.mock_llm)
+        self.llm_patcher.start()
 
     def tearDown(self):
         self.indexer_patcher.stop()

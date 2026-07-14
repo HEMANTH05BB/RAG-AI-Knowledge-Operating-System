@@ -87,17 +87,25 @@ class Indexer:
 
 class QdrantIndexer:
     def __init__(self):
-        from app.services.vector_store import VectorStoreService
-        self.vector_store = VectorStoreService()
+        pass
 
     def search(self, query_embedding: list, limit: int = 5, collection_name: str = "knowledge_base"):
-        results = self.vector_store.search_vectors(
-            collection_name=collection_name,
-            query_vector=query_embedding,
-            limit=limit
-        )
-        class SearchResult:
-            def __init__(self, score, payload):
-                self.score = score
-                self.payload = payload
-        return [SearchResult(r["score"], r["payload"]) for r in results]
+        from app.services.vector_store import VectorStoreService
+        vs = VectorStoreService()
+        try:
+            results = vs.search_vectors(
+                collection_name=collection_name,
+                query_vector=query_embedding,
+                limit=limit
+            )
+            class SearchResult:
+                def __init__(self, score, payload):
+                    self.score = score
+                    self.payload = payload
+            return [SearchResult(r["score"], r["payload"]) for r in results]
+        finally:
+            if hasattr(vs, "client"):
+                try:
+                    vs.client.close()
+                except Exception:
+                    pass

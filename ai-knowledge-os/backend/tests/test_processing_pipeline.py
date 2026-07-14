@@ -9,8 +9,13 @@ class TestProcessingPipeline(unittest.TestCase):
         self.mock_chunker = MagicMock()
         self.mock_llm = MagicMock()
         
-        # Configure embedding model dim in indexer
         self.mock_indexer.embedding_service.model_name = "test-model"
+        
+        # Patch DocumentIngestor globally for this test suite setup
+        self.ingestor_patcher = patch('app.services.processing_pipeline.DocumentIngestor')
+        self.mock_ingestor_class = self.ingestor_patcher.start()
+        self.mock_ingestor = MagicMock()
+        self.mock_ingestor_class.return_value = self.mock_ingestor
         
         self.pipeline = ProcessingPipeline(
             indexer=self.mock_indexer,
@@ -18,19 +23,14 @@ class TestProcessingPipeline(unittest.TestCase):
             llm=self.mock_llm
         )
 
-    @patch('app.services.processing_pipeline.DocumentIngestor')
-    def test_process_file_no_summary(self, mock_ingestor_class):
-        # Mock document ingestor instance
-        mock_ingestor = MagicMock()
-        mock_ingestor_class.return_value = mock_ingestor
-        
+    def tearDown(self):
+        self.ingestor_patcher.stop()
+
+    def test_process_file_no_summary(self):
         # Override mock ingestor extract_text
-        mock_ingestor.extract_text.return_value = [
+        self.mock_ingestor.extract_text.return_value = [
             {"text": "page 1 contents", "metadata": {"page_number": 1, "source": "test.txt"}}
         ]
-        
-        # Configure pipeline's internal document ingestor to use our mock
-        self.pipeline.document_ingestor = mock_ingestor
         
         self.mock_chunker.split_recursively.return_value = ["page 1 chunk 1", "page 1 chunk 2"]
         self.mock_indexer.index_segments.return_value = {"status": "success", "total_indexed": 2}
@@ -60,14 +60,10 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(segments[0]["text"], "page 1 chunk 1")
         self.assertEqual(segments[0]["metadata"]["page_number"], 1)
 
-    @patch('app.services.processing_pipeline.DocumentIngestor')
-    def test_process_file_with_summary(self, mock_ingestor_class):
-        mock_ingestor = MagicMock()
-        mock_ingestor_class.return_value = mock_ingestor
-        mock_ingestor.extract_text.return_value = [
+    def test_process_file_with_summary(self):
+        self.mock_ingestor.extract_text.return_value = [
             {"text": "document body content", "metadata": {"source": "doc.pdf"}}
         ]
-        self.pipeline.document_ingestor = mock_ingestor
         
         self.mock_llm.generate_response.return_value = "This is a summary of the doc."
         self.mock_chunker.split_recursively.return_value = ["chunk 1"]

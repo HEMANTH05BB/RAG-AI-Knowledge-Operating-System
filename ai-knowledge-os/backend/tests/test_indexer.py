@@ -66,7 +66,11 @@ class TestIndexer(unittest.TestCase):
         res = self.indexer.index_segments(segments, self.collection_name)
         
         self.assertEqual(res["status"], "error")
-        self.assertIn("db", res["message"].lower() or "vector" in res["message"].lower())
+        self.assertTrue(
+            "db" in res["message"].lower() or 
+            "database" in res["message"].lower() or 
+            "vector" in res["message"].lower()
+        )
 
 if __name__ == "__main__":
     unittest.main()
