@@ -7,7 +7,7 @@ from pydantic import BaseModel, HttpUrl
 import requests
 from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
-from sentence_transformers import SentenceTransformer
+from app.retrieval.embedding_service import EmbeddingService
 
 from app.config import settings
 from app.services.vector_store import VectorStoreService
@@ -15,13 +15,6 @@ from app.services.vector_store import VectorStoreService
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/url", tags=["URL Ingestion"])
 
-_embedding_model = None
-
-def get_embedding_model() -> SentenceTransformer:
-    global _embedding_model
-    if _embedding_model is None:
-        _embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
-    return _embedding_model
 
 class URLIngestRequest(BaseModel):
     url: str
@@ -105,12 +98,12 @@ async def ingest_url_content(request: URLIngestRequest):
     generates vector embeddings, and stores them in Qdrant.
     """
     try:
-        model = get_embedding_model()
+        embedding_service = EmbeddingService()
     except Exception as e:
-        logger.error(f"Failed to load embedding model: {e}")
+        logger.error(f"Failed to load embedding service: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Embedding model is not initialized."
+            detail="Embedding service is not initialized."
         )
 
     # 1. Fetch content depending on URL pattern
@@ -151,7 +144,7 @@ async def ingest_url_content(request: URLIngestRequest):
     
     try:
         vector_store = VectorStoreService()
-        vector_size = model.get_embedding_dimension()
+        vector_size = embedding_service.get_dimension()
         
         # Ensure collection exists in Qdrant
         vector_store.create_collection(request.collection_name, vector_size=vector_size)
@@ -168,7 +161,7 @@ async def ingest_url_content(request: URLIngestRequest):
                 "length": len(chunk)
             }
             
-            embedding = model.encode(chunk).tolist()
+            embedding = embedding_service.get_embedding(chunk)
             all_points.append({
                 "id": point_id,
                 "vector": embedding,

@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
+from app.retrieval.embedding_service import EmbeddingService
 
 from app.config import settings
 from app.services.vector_store import VectorStoreService
@@ -11,13 +11,6 @@ from app.services.llm_service import LLMService
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
-_embedding_model = None
-
-def get_embedding_model() -> SentenceTransformer:
-    global _embedding_model
-    if _embedding_model is None:
-        _embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
-    return _embedding_model
 
 class ChatRequest(BaseModel):
     message: str
@@ -39,19 +32,12 @@ async def chat_interaction(request: ChatRequest):
     RAG Chat endpoint: retrieves context documents from Qdrant based on the query,
     formats a prompt, and queries the LLM for a contextual answer.
     """
-    try:
-        model = get_embedding_model()
-    except Exception as e:
-        logger.error(f"Failed to load embedding model: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Embedding model is not initialized."
-        )
-        
     # 1. Generate query embedding
     try:
-        query_vector = model.encode(request.message).tolist()
+        embedding_service = EmbeddingService()
+        query_vector = embedding_service.get_embedding(request.message)
     except Exception as e:
+        logger.error(f"Failed to load embedding service or generate query vector: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to encode query message: {str(e)}"

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 import docx
 from pptx import Presentation
-from sentence_transformers import SentenceTransformer
+from app.retrieval.embedding_service import EmbeddingService
 
 from app.services.vector_store import VectorStoreService
 from app.retrieval.chunker import TextChunker
@@ -18,10 +18,8 @@ class DocumentIngestor:
         Initializes the Document Ingestor with a vector store service and a local embedding model.
         """
         self.vector_store = vector_store or VectorStoreService()
-        # SentenceTransformer loads the model locally (downloads on first run)
-        model = model_name or settings.EMBEDDING_MODEL_NAME
-        self.model = SentenceTransformer(model)
-        self.vector_size = self.model.get_embedding_dimension()
+        self.embedding_service = EmbeddingService(model_name)
+        self.vector_size = self.embedding_service.get_dimension()
         
     def extract_text(self, file_path: str) -> List[Dict[str, Any]]:
         """
@@ -148,7 +146,7 @@ class DocumentIngestor:
                 }
                 
                 # Generate embedding
-                embedding = self.model.encode(chunk).tolist()
+                embedding = self.embedding_service.get_embedding(chunk)
                 
                 all_points.append({
                     "id": point_id,
