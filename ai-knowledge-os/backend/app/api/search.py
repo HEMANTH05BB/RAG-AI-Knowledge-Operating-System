@@ -52,7 +52,7 @@ async def semantic_search(request: SearchRequest):
             collection_name=request.collection_name,
             query_vector=query_vector,
             limit=request.limit,
-            search_filter=request.filter_metadata
+            filter_dict=request.filter_metadata
         )
     except Exception as e:
         logger.error(f"Database semantic lookup failed: {e}")

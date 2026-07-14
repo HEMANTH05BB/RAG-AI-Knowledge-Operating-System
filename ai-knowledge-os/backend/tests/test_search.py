@@ -71,7 +71,7 @@ class TestSearchAPI(unittest.TestCase):
             collection_name=self.collection_name,
             query_vector=[0.02] * 384,
             limit=1,
-            search_filter=None
+            filter_dict=None
         )
 
     def test_search_success_with_metadata_filter(self):
@@ -94,7 +94,7 @@ class TestSearchAPI(unittest.TestCase):
             collection_name=self.collection_name,
             query_vector=[0.02] * 384,
             limit=3,
-            search_filter=filter_dict
+            filter_dict=filter_dict
         )
 
 if __name__ == "__main__":
