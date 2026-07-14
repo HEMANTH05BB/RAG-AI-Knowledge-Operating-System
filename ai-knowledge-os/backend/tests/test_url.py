@@ -120,7 +120,7 @@ class TestURLIngestionAPI(unittest.TestCase):
             }
         )
         
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 400)
         self.assertIn("Failed to download webpage", response.json()["detail"])
 
 if __name__ == "__main__":

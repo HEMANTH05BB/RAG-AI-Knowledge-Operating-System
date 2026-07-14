@@ -112,9 +112,13 @@ async def ingest_url_content(request: URLIngestRequest):
                 summary=result.get("summary")
             )
         else:
+            err_msg = result.get("message", "Ingestion failed")
+            status_code = 400
+            if "Vector storage" in err_msg or "Indexing" in err_msg or "Qdrant" in err_msg:
+                status_code = 500
             raise HTTPException(
-                status_code=500,
-                detail=result.get("message", "Ingestion failed")
+                status_code=status_code,
+                detail=err_msg
             )
             
     except Exception as e:
