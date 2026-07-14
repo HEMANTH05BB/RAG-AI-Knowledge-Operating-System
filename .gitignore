@@ -7,10 +7,6 @@ ai-knowledge-os/backend/data/chunks/
 ai-knowledge-os/backend/data/cache/
 **/__pycache__/
 **/*.pyc
-.env
-.env.*
-**/venv/
-**/data/qdrant/
-**/data/uploads/
-**/data/chunks/
-**/data/cache/
+**/.env
+**/.env.*
+!**/.env.example
