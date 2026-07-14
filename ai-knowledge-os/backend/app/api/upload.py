@@ -1,9 +1,7 @@
 import os
 import shutil
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
-from app.ingestion.document_ingestor import DocumentIngestor
-from app.services.vector_store import VectorStoreService
-
+from app.services.processing_pipeline import ProcessingPipeline
 from app.config import settings
 
 router = APIRouter(prefix="/api/upload", tags=["Upload"])
@@ -17,11 +15,12 @@ async def upload_file(
     file: UploadFile = File(...),
     collection_name: str = Form("knowledge_base"),
     chunk_size: int = Form(settings.CHUNK_SIZE),
-    chunk_overlap: int = Form(settings.CHUNK_OVERLAP)
+    chunk_overlap: int = Form(settings.CHUNK_OVERLAP),
+    generate_summary: bool = Form(False)
 ):
     """
-    Upload a document, extract text, split it into chunks, generate embeddings,
-    and index them in the local Qdrant vector database.
+    Upload a document, extract text, split it recursively into chunks,
+    optionally generate a document summary, and index them in the Qdrant database.
     """
     # 1. Validate file extension
     ext = os.path.splitext(file.filename)[1].lower()
@@ -44,16 +43,14 @@ async def upload_file(
         )
         
     # 3. Run Ingestion Pipeline
-    vector_store = None
     try:
-        vector_store = VectorStoreService()
-        ingestor = DocumentIngestor(vector_store=vector_store)
-        
-        result = ingestor.ingest_file(
+        pipeline = ProcessingPipeline()
+        result = pipeline.process_file(
             temp_file_path,
             collection_name=collection_name,
             chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap
+            chunk_overlap=chunk_overlap,
+            generate_summary=generate_summary
         )
         
         if result["status"] == "success":
@@ -61,7 +58,8 @@ async def upload_file(
                 "message": f"Successfully ingested {file.filename}",
                 "filename": file.filename,
                 "collection": collection_name,
-                "chunks_count": result["total_chunks"]
+                "chunks_count": result["total_chunks"],
+                "summary": result.get("summary")
             }
         else:
             raise HTTPException(
@@ -78,13 +76,7 @@ async def upload_file(
         )
         
     finally:
-        # 4. Clean up connections
-        if vector_store and hasattr(vector_store, "client"):
-            try:
-                vector_store.client.close()
-            except Exception:
-                pass
-        # 5. Clean up temporary uploaded file
+        # 4. Clean up temporary uploaded file
         if os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
