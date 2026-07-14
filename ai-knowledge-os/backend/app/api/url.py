@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 from app.retrieval.embedding_service import EmbeddingService
+from app.retrieval.indexer import Indexer
 
 from app.config import settings
 from app.services.vector_store import VectorStoreService
@@ -138,53 +139,30 @@ async def ingest_url_content(request: URLIngestRequest):
             detail="No contents could be chunked or extracted from the URL."
         )
 
-    # 3. Create vector store client
-    vector_store = None
-    all_points = []
-    
-    try:
-        vector_store = VectorStoreService()
-        vector_size = embedding_service.get_dimension()
-        
-        # Ensure collection exists in Qdrant
-        vector_store.create_collection(request.collection_name, vector_size=vector_size)
-        
-        # 4. Generate embeddings and prepare upsert payloads
-        for idx, chunk in enumerate(chunks):
-            point_id = str(uuid.uuid4())
-            payload = {
+    # 3. Format segments for indexer
+    segments = []
+    for chunk in chunks:
+        segments.append({
+            "text": chunk,
+            "metadata": {
                 "source": source_name,
                 "url": url_str,
-                "text": chunk,
-                "chunk_index": idx,
-                "source_type": source_type,
-                "length": len(chunk)
+                "source_type": source_type
             }
-            
-            embedding = embedding_service.get_embedding(chunk)
-            all_points.append({
-                "id": point_id,
-                "vector": embedding,
-                "payload": payload
-            })
-            
-        # 5. Upsert to Qdrant
-        success = vector_store.upsert_vectors(request.collection_name, all_points)
-        if not success:
-            raise RuntimeError("Failed to store vectors in local database.")
-            
+        })
+
+    # 4. Batch index via Indexer
+    try:
+        indexer = Indexer(embedding_service=embedding_service)
+        result = indexer.index_segments(segments, request.collection_name)
+        if result["status"] != "success":
+            raise RuntimeError(result.get("message", "Vector store rejected upsert operation."))
     except Exception as e:
         logger.error(f"Failed to ingest URL: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to index URL contents: {str(e)}"
         )
-    finally:
-        if vector_store and hasattr(vector_store, "client"):
-            try:
-                vector_store.client.close()
-            except Exception:
-                pass
 
     return URLIngestResponse(
         status="success",

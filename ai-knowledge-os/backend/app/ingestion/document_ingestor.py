@@ -6,6 +6,7 @@ import fitz  # PyMuPDF
 import docx
 from pptx import Presentation
 from app.retrieval.embedding_service import EmbeddingService
+from app.retrieval.indexer import Indexer
 
 from app.services.vector_store import VectorStoreService
 from app.retrieval.chunker import TextChunker
@@ -20,6 +21,7 @@ class DocumentIngestor:
         self.vector_store = vector_store or VectorStoreService()
         self.embedding_service = EmbeddingService(model_name)
         self.vector_size = self.embedding_service.get_dimension()
+        self.indexer = Indexer(vector_store=self.vector_store, embedding_service=self.embedding_service)
         
     def extract_text(self, file_path: str) -> List[Dict[str, Any]]:
         """
@@ -120,51 +122,27 @@ class DocumentIngestor:
         if not sections:
             return {"status": "skipped", "message": "No text extracted from file", "filename": filename}
             
-        # Ensure collection exists in Qdrant
-        self.vector_store.create_collection(collection_name, vector_size=self.vector_size)
-        
-        all_points = []
-        total_chunks = 0
-        
-        # 2. Chunk text and prepare points
+        # 2. Chunk text and prepare segments
+        segments = []
         for sec in sections:
             sec_text = sec["text"]
             sec_metadata = sec["metadata"]
             
             chunks = self.chunk_text(sec_text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-            
-            for chunk_idx, chunk in enumerate(chunks):
-                # Generate a unique ID for the vector point
-                point_id = str(uuid.uuid4())
-                
-                # Combine section metadata with chunk metadata
-                payload = {
-                    **sec_metadata,
+            for chunk in chunks:
+                segments.append({
                     "text": chunk,
-                    "chunk_index": chunk_idx,
-                    "length": len(chunk)
-                }
-                
-                # Generate embedding
-                embedding = self.embedding_service.get_embedding(chunk)
-                
-                all_points.append({
-                    "id": point_id,
-                    "vector": embedding,
-                    "payload": payload
+                    "metadata": sec_metadata
                 })
                 
-                total_chunks += 1
-                
-        # 3. Upsert to Qdrant
-        if all_points:
-            success = self.vector_store.upsert_vectors(collection_name, all_points)
-            if success:
-                return {
-                    "status": "success",
-                    "filename": filename,
-                    "collection": collection_name,
-                    "total_chunks": total_chunks
-                }
-                
-        return {"status": "error", "message": "Failed to store vectors", "filename": filename}
+        # 3. Index segments via indexer
+        result = self.indexer.index_segments(segments, collection_name)
+        if result["status"] == "success":
+            return {
+                "status": "success",
+                "filename": filename,
+                "collection": collection_name,
+                "total_chunks": result["total_indexed"]
+            }
+            
+        return {"status": "error", "message": result.get("message", "Failed to store vectors"), "filename": filename}
