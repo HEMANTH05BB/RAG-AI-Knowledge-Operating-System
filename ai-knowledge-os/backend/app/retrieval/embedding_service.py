@@ -59,3 +59,9 @@ class EmbeddingService:
         """
         model = self._get_model()
         return model.get_embedding_dimension()
+
+    def embed(self, text: str) -> List[float]:
+        """
+        Alias for get_embedding to support exact API requirements.
+        """
+        return self.get_embedding(text)

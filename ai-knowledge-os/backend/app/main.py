@@ -17,7 +17,7 @@ app.include_router(upload_router)
 app.include_router(chat_router)
 app.include_router(url_router)
 app.include_router(search_router)
-app.include_router(rag_router)
+app.include_router(rag_router, prefix="/api", tags=["RAG"])
 
 # Configure CORS
 app.add_middleware(

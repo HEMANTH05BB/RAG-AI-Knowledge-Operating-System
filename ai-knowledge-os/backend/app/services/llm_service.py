@@ -133,3 +133,9 @@ ANSWER:"""
         except Exception as e:
             logger.error(f"Google Gemini API call failed: {e}")
             raise RuntimeError(f"LLM generation failed: {e}")
+
+    def generate(self, prompt: str) -> str:
+        """
+        Alias for generate_response to support exact API requirements.
+        """
+        return self.generate_response(prompt)
