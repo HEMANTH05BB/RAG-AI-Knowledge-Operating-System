@@ -4,6 +4,7 @@ from app.api.upload import router as upload_router
 from app.api.chat import router as chat_router
 from app.api.url import router as url_router
 from app.api.search import router as search_router
+from app.api.rag import router as rag_router
 
 app = FastAPI(
     title="AI Knowledge Operating System API",
@@ -16,6 +17,7 @@ app.include_router(upload_router)
 app.include_router(chat_router)
 app.include_router(url_router)
 app.include_router(search_router)
+app.include_router(rag_router)
 
 # Configure CORS
 app.add_middleware(
