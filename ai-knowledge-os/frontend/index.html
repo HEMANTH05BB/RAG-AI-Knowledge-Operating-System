@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Operating System</title>
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-brain-circuit"></i>
+                    <span>KnowledgeOS</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-tab="ingest-tab">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Ingestion Hub</span>
+                </button>
+                <button class="nav-btn" data-tab="search-tab">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Semantic Search</span>
+                </button>
+                <button class="nav-btn" data-tab="chat-tab">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>RAG Assistant</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span>API Status: Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="workspace">
+            <header class="workspace-header">
+                <h1 id="tab-title">Ingestion Hub</h1>
+                <p id="tab-description">Upload files, scrape web content, and index them in your local vector database.</p>
+            </header>
+
+            <div class="workspace-content">
+                <!-- TABS CONTENT -->
+                
+                <!-- Tab 1: Ingestion Hub -->
+                <section class="tab-content active" id="ingest-tab">
+                    <div class="grid-container">
+                        <!-- File Upload Card -->
+                        <div class="glass-card upload-card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <h2>File Ingestion</h2>
+                            </div>
+                            <form id="file-upload-form">
+                                <div class="upload-dropzone" id="dropzone">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                    <p>Drag & drop document here, or <span>browse files</span></p>
+                                    <input type="file" id="file-input" name="file" accept=".pdf,.docx,.pptx,.html,.htm,.txt" required hidden>
+                                    <div class="selected-file-badge" id="selected-file" style="display: none;">
+                                        <i class="fa-solid fa-file"></i>
+                                        <span id="file-name-text">filename.pdf</span>
+                                        <button type="button" id="remove-file-btn"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="input-group">
+                                        <label for="file-collection">Target Collection</label>
+                                        <input type="text" id="file-collection" value="knowledge_base" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="file-chunk-size">Chunk Size (chars)</label>
+                                        <input type="number" id="file-chunk-size" value="500" min="50" max="5000">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="file-chunk-overlap">Chunk Overlap</label>
+                                        <input type="number" id="file-chunk-overlap" value="100" min="0" max="2500">
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="file-summary" name="generate_summary">
+                                        <label for="file-summary">Generate AI Summary</label>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" id="file-submit-btn">
+                                    <i class="fa-solid fa-microchip"></i>
+                                    <span>Ingest Document</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- URL Scraping Card -->
+                        <div class="glass-card url-card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-globe"></i>
+                                <h2>Web & YouTube Scraper</h2>
+                            </div>
+                            <form id="url-ingest-form">
+                                <div class="input-group">
+                                    <label for="scrape-url">Source URL</label>
+                                    <input type="url" id="scrape-url" placeholder="https://example.com/article or youtube.com/watch?v=..." required>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="input-group">
+                                        <label for="url-collection">Target Collection</label>
+                                        <input type="text" id="url-collection" value="knowledge_base" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="url-chunk-size">Chunk Size (chars)</label>
+                                        <input type="number" id="url-chunk-size" value="500" min="50" max="5000">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="url-chunk-overlap">Chunk Overlap</label>
+                                        <input type="number" id="url-chunk-overlap" value="100" min="0" max="2500">
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="url-summary" name="generate_summary">
+                                        <label for="url-summary">Generate AI Summary</label>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-secondary" id="url-submit-btn">
+                                    <i class="fa-solid fa-network-wired"></i>
+                                    <span>Scrape & Ingest</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Ingestion Log / Status Dashboard -->
+                    <div class="glass-card log-card">
+                        <div class="card-header">
+                            <i class="fa-solid fa-list-check"></i>
+                            <h2>Ingestion Logs</h2>
+                        </div>
+                        <div class="log-table-wrapper">
+                            <table class="log-table">
+                                <thead>
+                                    <tr>
+                                        <th>Source</th>
+                                        <th>Collection</th>
+                                        <th>Type</th>
+                                        <th>Chunks</th>
+                                        <th>Summary / Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="log-body">
+                                    <tr class="empty-row">
+                                        <td colspan="5">No files or links ingested in this session yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab 2: Semantic Search -->
+                <section class="tab-content" id="search-tab">
+                    <div class="glass-card search-card">
+                        <div class="search-bar-container">
+                            <form id="search-form">
+                                <div class="search-input-wrapper">
+                                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                    <input type="text" id="search-query" placeholder="Search the vector database (e.g. 'What is the settings class?')" required>
+                                    <button type="submit" class="btn btn-search">Search</button>
+                                </div>
+                                
+                                <div class="search-filters-bar">
+                                    <div class="filter-item">
+                                        <label for="search-collection">Collection</label>
+                                        <input type="text" id="search-collection" value="knowledge_base" required>
+                                    </div>
+                                    <div class="filter-item">
+                                        <label for="search-limit">Max Matches</label>
+                                        <input type="number" id="search-limit" value="5" min="1" max="25" required>
+                                    </div>
+                                    <div class="filter-item">
+                                        <label for="search-filter-key">Filter Key</label>
+                                        <input type="text" id="search-filter-key" placeholder="e.g. source_type">
+                                    </div>
+                                    <div class="filter-item">
+                                        <label for="search-filter-val">Filter Value</label>
+                                        <input type="text" id="search-filter-val" placeholder="e.g. webpage">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Search Results -->
+                    <div class="search-results-container" id="search-results">
+                        <div class="search-placeholder">
+                            <i class="fa-solid fa-compass-drafting"></i>
+                            <p>Type a search query above and click search to view matching vector points.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab 3: RAG Assistant -->
+                <section class="tab-content" id="chat-tab">
+                    <div class="chat-workspace">
+                        <!-- Chat Main Area -->
+                        <div class="glass-card chat-card">
+                            <div class="chat-messages" id="chat-messages">
+                                <div class="message system-message">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <p>Ask a question about the documents you've uploaded. The model will try to answer based strictly on the matching semantic chunks.</p>
+                                </div>
+                            </div>
+                            <div class="chat-input-area">
+                                <form id="chat-form">
+                                    <input type="text" id="chat-input" placeholder="Ask a question about your knowledge..." required>
+                                    <button type="submit" class="btn btn-chat-send" id="chat-send-btn">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Citations Drawer -->
+                        <div class="glass-card citation-sidebar">
+                            <div class="card-header">
+                                <i class="fa-solid fa-quote-left"></i>
+                                <h2>Citations & Chunks</h2>
+                            </div>
+                            <div class="citations-list" id="citations-list">
+                                <div class="citation-placeholder">
+                                    <i class="fa-solid fa-link-slash"></i>
+                                    <p>Sources used to compile the assistant's answer will appear here dynamically.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

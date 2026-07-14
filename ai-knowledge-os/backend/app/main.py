@@ -28,16 +28,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {
-        "status": "online",
-        "message": "Welcome to the AI Knowledge Operating System API",
-        "docs_url": "/docs"
-    }
+import os
+from fastapi.staticfiles import StaticFiles
 
 @app.get("/health")
 async def health():
     return {
         "status": "healthy"
     }
+
+# Mount static files to serve the frontend dashboard
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend"))
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
