@@ -8,6 +8,7 @@ from pptx import Presentation
 from sentence_transformers import SentenceTransformer
 
 from app.services.vector_store import VectorStoreService
+from app.retrieval.chunker import TextChunker
 
 from app.config import settings
 
@@ -105,31 +106,10 @@ class DocumentIngestor:
 
     def chunk_text(self, text: str, chunk_size: int = 500, chunk_overlap: int = 100) -> List[str]:
         """
-        Splits a string of text into smaller overlapping chunks.
+        Splits a string of text into smaller overlapping chunks recursively.
         """
-        if not text:
-            return []
-            
-        chunks = []
-        start = 0
-        text_len = len(text)
-        
-        while start < text_len:
-            # Take a chunk of chunk_size characters
-            end = start + chunk_size
-            chunk = text[start:end]
-            chunks.append(chunk)
-            
-            # If the current chunk reached or exceeded the end, we are done
-            if end >= text_len:
-                break
-                
-            # Move the start index forward by chunk_size - chunk_overlap
-            start += (chunk_size - chunk_overlap)
-            if start >= text_len or chunk_size <= chunk_overlap:
-                break
-                
-        return chunks
+        chunker = TextChunker()
+        return chunker.split_recursively(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     def ingest_file(self, file_path: str, collection_name: str, chunk_size: int = 500, chunk_overlap: int = 100) -> Dict[str, Any]:
         """

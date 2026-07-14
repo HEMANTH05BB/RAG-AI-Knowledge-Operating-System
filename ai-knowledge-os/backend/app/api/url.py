@@ -93,25 +93,10 @@ def fetch_webpage_content(url: str) -> str:
 
 def split_text_into_chunks(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     """
-    Splits content string into character-based overlapping chunks.
+    Splits content string into recursive overlapping chunks.
     """
-    chunks = []
-    start = 0
-    text_len = len(text)
-    
-    while start < text_len:
-        end = start + chunk_size
-        chunk = text[start:end]
-        chunks.append(chunk)
-        
-        if end >= text_len:
-            break
-            
-        start += (chunk_size - chunk_overlap)
-        if start >= text_len or chunk_size <= chunk_overlap:
-            break
-            
-    return chunks
+    chunker = TextChunker()
+    return chunker.split_recursively(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
 @router.post("", response_model=URLIngestResponse)
 async def ingest_url_content(request: URLIngestRequest):
