@@ -120,3 +120,41 @@ class VectorStoreService:
         except Exception as e:
             print(f"Error deleting collection: {e}")
             return False
+
+    def get_document_chunks(self, collection_name: str, filename: str) -> List[Dict[str, Any]]:
+        """
+        Retrieves all chunks matching a specific source filename from the vector store,
+        sorted in order of their original chunk index.
+        """
+        try:
+            conditions = [
+                rest_models.FieldCondition(
+                    key="source",
+                    match=rest_models.MatchValue(value=filename)
+                )
+            ]
+            search_filter = rest_models.Filter(must=conditions)
+            
+            # Fetch all points matching this filter (with payload, without vectors)
+            results, _ = self.client.scroll(
+                collection_name=collection_name,
+                scroll_filter=search_filter,
+                limit=1000, # Large limit to safely retrieve all chunks of the document
+                with_payload=True,
+                with_vectors=False
+            )
+            
+            # Reconstruct list of points
+            points = []
+            for res in results:
+                points.append({
+                    "id": res.id,
+                    "payload": res.payload
+                })
+                
+            # Sort by chunk_index to reconstruct correct sequence order
+            points.sort(key=lambda p: p["payload"].get("chunk_index", 0))
+            return points
+        except Exception as e:
+            print(f"Error scrolling points for document {filename}: {e}")
+            return []
