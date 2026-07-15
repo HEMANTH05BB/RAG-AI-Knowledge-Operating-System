@@ -1,4 +1,4 @@
-const API_BASE = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') ? window.location.origin : 'http://127.0.0.1:8000';
+// Reusable ApiClient is loaded from api.js
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Navigation Controller
@@ -121,17 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const logId = addLogEntry(file.name, document.getElementById('file-collection').value, 'File');
 
         try {
-            const response = await fetch(`${API_BASE}/api/upload`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Ingestion failure');
-            }
-
-            const data = await response.json();
+            const data = await ApiClient.uploadDocument(formData);
             updateLogEntry(logId, 'success', data.chunks_count, data.summary);
             loadIndexedDocuments();
             // Clear inputs
@@ -163,24 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const logId = addLogEntry(url, collection, 'Link');
 
         try {
-            const response = await fetch(`${API_BASE}/api/url`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url,
-                    collection_name: collection,
-                    chunk_size,
-                    chunk_overlap,
-                    generate_summary
-                })
+            const data = await ApiClient.scrapeUrl({
+                url,
+                collection_name: collection,
+                chunk_size,
+                chunk_overlap,
+                generate_summary
             });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Scraping failure');
-            }
-
-            const data = await response.json();
             updateLogEntry(logId, 'success', data.total_chunks, data.summary);
             loadIndexedDocuments();
             urlIngestForm.reset();
@@ -260,22 +239,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(`${API_BASE}/api/search`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query,
-                    collection_name: collection,
-                    limit,
-                    filter_metadata
-                })
+            const data = await ApiClient.semanticSearch({
+                query,
+                collection_name: collection,
+                limit,
+                filter_metadata
             });
-
-            if (!response.ok) {
-                throw new Error('Search failed');
-            }
-
-            const data = await response.json();
             renderSearchResults(data.results);
         } catch (error) {
             console.error(error);
@@ -350,18 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         try {
-            const response = await fetch(`${API_BASE}/api/ask`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Generation failed');
-            }
-
-            const data = await response.json();
+            const data = await ApiClient.askQuestion({ question });
             
             // Update bot bubble with answers and inline citations
             updateMessage(botMsgId, data.answer, false, data.citations);
@@ -492,10 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadIndexedDocuments() {
         try {
-            const response = await fetch(`${API_BASE}/api/upload/list`);
-            if (!response.ok) throw new Error('Failed to load documents');
-            
-            const data = await response.json();
+            const data = await ApiClient.listDocuments();
             renderDocumentList(data.documents);
         } catch (error) {
             console.error('Error loading documents:', error);
@@ -575,18 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryModal.style.display = 'flex';
 
         try {
-            const response = await fetch(`${API_BASE}/api/summarize`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Summarization failed');
-            }
-
-            const data = await response.json();
+            const data = await ApiClient.summarizeDocument({ filename });
             modalBody.innerHTML = formatSummaryMarkdown(data.summary);
         } catch (error) {
             console.error('Error generating summary:', error);
@@ -636,14 +580,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const dot = document.querySelector('.pulse-dot');
         const text = dot.nextElementSibling;
         try {
-            const res = await fetch(`${API_BASE}/health`);
-            if (res.ok) {
-                dot.style.background = 'var(--success-color)';
-                dot.style.boxShadow = '0 0 0 0 rgba(16, 185, 129, 0.7)';
-                text.textContent = 'API Status: Online';
-            } else {
-                throw new Error();
-            }
+            await ApiClient.checkHealth();
+            dot.style.background = 'var(--success-color)';
+            dot.style.boxShadow = '0 0 0 0 rgba(16, 185, 129, 0.7)';
+            text.textContent = 'API Status: Online';
         } catch {
             dot.style.background = 'var(--error-color)';
             dot.style.animation = 'none';
