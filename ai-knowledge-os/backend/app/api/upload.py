@@ -84,6 +84,7 @@ async def upload_file(
         )
         
     # 3. Run Ingestion Pipeline
+    pipeline = None
     try:
         pipeline = ProcessingPipeline()
         result = pipeline.process_file(
@@ -117,6 +118,12 @@ async def upload_file(
         )
         
     finally:
+        # Clean up database client connection
+        if pipeline:
+            try:
+                pipeline.close()
+            except Exception:
+                pass
         # 4. Clean up temporary uploaded file
         if os.path.exists(temp_file_path):
             try:

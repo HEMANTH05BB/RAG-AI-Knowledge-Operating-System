@@ -93,6 +93,7 @@ async def ingest_url_content(request: URLIngestRequest):
     Ingests web URLs or YouTube URLs, extracts their contents, chunks them recursively,
     optionally generates an AI summary, and stores them in Qdrant.
     """
+    pipeline = None
     try:
         from app.services.processing_pipeline import ProcessingPipeline
         pipeline = ProcessingPipeline()
@@ -130,3 +131,9 @@ async def ingest_url_content(request: URLIngestRequest):
             status_code=500,
             detail=f"Failed to index URL contents: {str(e)}"
         )
+    finally:
+        if pipeline:
+            try:
+                pipeline.close()
+            except Exception:
+                pass

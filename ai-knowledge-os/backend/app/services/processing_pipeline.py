@@ -157,3 +157,13 @@ class ProcessingPipeline:
         except Exception as e:
             logger.warning(f"Failed to generate summary: {e}")
             return None
+
+    def close(self):
+        """
+        Close active database client connection in vector store.
+        """
+        if hasattr(self, "indexer") and hasattr(self.indexer, "vector_store") and hasattr(self.indexer.vector_store, "client"):
+            try:
+                self.indexer.vector_store.client.close()
+            except Exception:
+                pass
