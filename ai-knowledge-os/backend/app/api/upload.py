@@ -2,6 +2,7 @@ import os
 import shutil
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from app.services.processing_pipeline import ProcessingPipeline
+from app.services.vector_store import VectorStoreService
 from app.config import settings
 
 router = APIRouter(prefix="/api/upload", tags=["Upload"])
@@ -9,6 +10,46 @@ router = APIRouter(prefix="/api/upload", tags=["Upload"])
 # Initialize UPLOAD_DIR from settings
 UPLOAD_DIR = settings.UPLOAD_DIR
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.get("/list")
+async def list_ingested_documents(collection_name: str = "knowledge_base"):
+    """
+    Retrieve list of unique document sources currently indexed in the specified Qdrant collection.
+    """
+    vs = None
+    try:
+        vs = VectorStoreService()
+        # Scroll points to collect payloads (limit 1000)
+        results, _ = vs.client.scroll(
+            collection_name=collection_name,
+            limit=1000,
+            with_payload=True,
+            with_vectors=False
+        )
+        
+        # Extract unique sources
+        sources = set()
+        for pt in results:
+            source = pt.payload.get("source")
+            if source:
+                sources.add(source)
+                
+        return {
+            "status": "success",
+            "documents": sorted(list(sources))
+        }
+    except Exception as e:
+        # If collection doesn't exist, return empty list gracefully
+        return {
+            "status": "success",
+            "documents": []
+        }
+    finally:
+        if vs and hasattr(vs, "client"):
+            try:
+                vs.client.close()
+            except Exception:
+                pass
 
 @router.post("")
 async def upload_file(

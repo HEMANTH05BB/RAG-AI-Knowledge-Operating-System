@@ -1,4 +1,4 @@
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') ? window.location.origin : 'http://127.0.0.1:8000';
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Navigation Controller
@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             updateLogEntry(logId, 'success', data.chunks_count, data.summary);
+            loadIndexedDocuments();
             // Clear inputs
             fileInput.value = '';
             selectedFileBadge.style.display = 'none';
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             updateLogEntry(logId, 'success', data.total_chunks, data.summary);
+            loadIndexedDocuments();
             urlIngestForm.reset();
         } catch (error) {
             console.error(error);
@@ -361,8 +363,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
-            // Update bot bubble with answers
-            updateMessage(botMsgId, data.answer);
+            // Update bot bubble with answers and inline citations
+            updateMessage(botMsgId, data.answer, false, data.citations);
             
             // Render citations side drawer
             renderCitations(data.citations);
@@ -395,11 +397,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return id;
     }
 
-    function updateMessage(id, text, isError = false) {
+    function updateMessage(id, text, isError = false, citations = null) {
         const msgDiv = document.getElementById(id);
         if (!msgDiv) return;
         const bubble = msgDiv.querySelector('.message-bubble p');
         bubble.innerHTML = isError ? `<span style="color: var(--error-color);">${text}</span>` : formatTextMarkdown(text);
+        
+        // Render citations display directly under the answer text
+        if (citations && citations.length > 0) {
+            const citationsDiv = document.createElement('div');
+            citationsDiv.className = 'message-citations';
+            citationsDiv.style.marginTop = '12px';
+            citationsDiv.style.paddingTop = '10px';
+            citationsDiv.style.borderTop = '1px solid rgba(255, 255, 255, 0.08)';
+            citationsDiv.style.fontSize = '0.8rem';
+            citationsDiv.style.color = 'var(--text-secondary)';
+            
+            let citationsHtml = '<strong style="display: block; margin-bottom: 6px; color: var(--text-primary);"><i class="fa-solid fa-quote-left" style="font-size: 0.75rem; margin-right: 4px;"></i> Sources used:</strong>';
+            citationsHtml += '<div style="display: flex; flex-direction: column; gap: 4px;">';
+            citations.forEach((cit, index) => {
+                const scorePercent = Math.round(cit.score * 100);
+                const docName = cit.source.split('/').pop();
+                citationsHtml += `
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        <strong style="color: var(--secondary-accent);">[${index + 1}]</strong> 
+                        <span title="${cit.source}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;">${docName}</span> 
+                        <span style="color: var(--success-color); font-weight: 600;">(${scorePercent}% match)</span>
+                    </span>
+                `;
+            });
+            citationsHtml += '</div>';
+            citationsDiv.innerHTML = citationsHtml;
+            msgDiv.querySelector('.message-bubble').appendChild(citationsDiv);
+        }
+        
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
@@ -454,4 +485,174 @@ document.addEventListener('DOMContentLoaded', () => {
         // Simple linebreaks
         return formatted.replace(/\n/g, '<br>');
     }
+
+    // 8. Document List Controller
+    const documentList = document.getElementById('document-list');
+    const refreshDocsBtn = document.getElementById('refresh-docs-btn');
+
+    async function loadIndexedDocuments() {
+        try {
+            const response = await fetch(`${API_BASE}/api/upload/list`);
+            if (!response.ok) throw new Error('Failed to load documents');
+            
+            const data = await response.json();
+            renderDocumentList(data.documents);
+        } catch (error) {
+            console.error('Error loading documents:', error);
+            documentList.innerHTML = `
+                <li style="color: var(--error-color); text-align: center; padding: 1rem 0;">
+                    <i class="fa-solid fa-triangle-exclamation" style="display: block; margin-bottom: 8px;"></i>
+                    Failed to fetch document list.
+                </li>
+            `;
+        }
+    }
+
+    function renderDocumentList(documents) {
+        if (!documents || documents.length === 0) {
+            documentList.innerHTML = `
+                <li class="empty-doc-row" style="color: var(--text-muted); text-align: center; padding: 2rem 0; width: 100%;">
+                    <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 10px; display: block; color: var(--text-muted);"></i>
+                    No indexed documents found in database.
+                </li>
+            `;
+            return;
+        }
+
+        documentList.innerHTML = documents.map(doc => {
+            // Determine icon by type
+            let icon = 'fa-file-lines';
+            if (doc.endsWith('.pdf')) icon = 'fa-file-pdf';
+            else if (doc.endsWith('.docx') || doc.endsWith('.doc')) icon = 'fa-file-word';
+            else if (doc.endsWith('.pptx') || doc.endsWith('.ppt')) icon = 'fa-file-powerpoint';
+            else if (doc.endsWith('.html') || doc.endsWith('.htm')) icon = 'fa-file-code';
+            else if (doc.startsWith('http://') || doc.startsWith('https://')) icon = 'fa-link';
+
+            const displayName = doc.startsWith('YouTube (ID:') ? doc : doc.split('/').pop();
+
+            return `
+                <li class="document-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; transition: background 0.2s;">
+                    <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 70%;">
+                        <i class="fa-solid ${icon}" style="color: var(--accent-color); font-size: 1.1rem;"></i>
+                        <span class="doc-name" style="font-weight: 500; font-size: 0.9rem;" title="${doc}">${displayName}</span>
+                    </div>
+                    <button class="btn btn-secondary summarize-doc-btn" data-filename="${doc}" style="padding: 4px 10px; font-size: 0.8rem; width: auto; height: auto; min-width: unset; margin: 0; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Summarize
+                    </button>
+                </li>
+            `;
+        }).join('');
+
+        // Bind clicks to newly rendered buttons
+        documentList.querySelectorAll('.summarize-doc-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filename = btn.getAttribute('data-filename');
+                handleDocumentSummarize(filename, btn);
+            });
+        });
+    }
+
+    refreshDocsBtn.addEventListener('click', loadIndexedDocuments);
+
+    // 9. Document Summarize Controller
+    const summaryModal = document.getElementById('summary-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    async function handleDocumentSummarize(filename, btn) {
+        const originalText = btn.innerHTML;
+        setButtonLoading(btn, true);
+        
+        // Open modal with loading state
+        modalTitle.textContent = `Summarizing: ${filename.split('/').pop()}`;
+        modalBody.innerHTML = `
+            <div style="text-align: center; padding: 3rem 0; color: var(--text-secondary);">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--accent-color); margin-bottom: 12px;"></i>
+                <p>Retrieving vector chunks and generating AI summary using Llama 3.3 70B...</p>
+            </div>
+        `;
+        summaryModal.style.display = 'flex';
+
+        try {
+            const response = await fetch(`${API_BASE}/api/summarize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Summarization failed');
+            }
+
+            const data = await response.json();
+            modalBody.innerHTML = formatSummaryMarkdown(data.summary);
+        } catch (error) {
+            console.error('Error generating summary:', error);
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 2rem 0; color: var(--error-color);">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; margin-bottom: 12px;"></i>
+                    <p>Failed to generate summary: ${error.message}</p>
+                </div>
+            `;
+        } finally {
+            setButtonLoading(btn, false, originalText);
+        }
+    }
+
+    // Close Modal Bindings
+    closeModalBtn.addEventListener('click', () => {
+        summaryModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === summaryModal) {
+            summaryModal.style.display = 'none';
+        }
+    });
+
+    function formatSummaryMarkdown(text) {
+        let html = escapeHtml(text);
+        
+        // Convert Markdown bold (**text**) to HTML <strong>
+        html = html.replace(/\*\*(.*?)\*\?/g, '<strong>$1</strong>');
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Convert Bullet points (- text or * text) to lists
+        html = html.replace(/^\s*[-*]\s+(.*?)$/gm, '<li style="margin-left: 20px; margin-bottom: 6px;">$1</li>');
+        
+        // Convert numbered lists
+        html = html.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<div style="margin-left: 20px; margin-bottom: 6px;"><strong>$1.</strong> $2</div>');
+        
+        // Linebreaks
+        html = html.replace(/\n/g, '<br>');
+        
+        return html;
+    }
+
+    // 10. API Health Check Controller
+    async function checkApiHealth() {
+        const dot = document.querySelector('.pulse-dot');
+        const text = dot.nextElementSibling;
+        try {
+            const res = await fetch(`${API_BASE}/health`);
+            if (res.ok) {
+                dot.style.background = 'var(--success-color)';
+                dot.style.boxShadow = '0 0 0 0 rgba(16, 185, 129, 0.7)';
+                text.textContent = 'API Status: Online';
+            } else {
+                throw new Error();
+            }
+        } catch {
+            dot.style.background = 'var(--error-color)';
+            dot.style.animation = 'none';
+            text.textContent = 'API Status: Offline';
+            text.style.color = 'var(--error-color)';
+        }
+    }
+
+    // Initial page load triggers
+    checkApiHealth();
+    loadIndexedDocuments();
 });

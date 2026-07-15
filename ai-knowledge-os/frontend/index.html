@@ -139,29 +139,53 @@
                         </div>
                     </div>
 
-                    <!-- Ingestion Log / Status Dashboard -->
-                    <div class="glass-card log-card">
-                        <div class="card-header">
-                            <i class="fa-solid fa-list-check"></i>
-                            <h2>Ingestion Logs</h2>
+                    <!-- Ingestion Logs and Document List Grid -->
+                    <div class="ingestion-dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-top: 2rem;">
+                        <!-- Indexed Documents Card -->
+                        <div class="glass-card documents-card">
+                            <div class="card-header" style="justify-content: space-between; display: flex; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    <h2>Indexed Documents</h2>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="refresh-docs-btn" style="padding: 6px 12px; font-size: 0.85rem; width: auto; min-width: unset; height: auto; margin: 0;">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                                </button>
+                            </div>
+                            <div class="document-list-wrapper" style="max-height: 300px; overflow-y: auto;">
+                                <ul class="document-list" id="document-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
+                                    <li class="empty-doc-row" style="color: var(--text-muted); text-align: center; padding: 2rem 0;">
+                                        <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 10px; display: block; color: var(--text-muted);"></i>
+                                        No indexed documents found in database.
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                        <div class="log-table-wrapper">
-                            <table class="log-table">
-                                <thead>
-                                    <tr>
-                                        <th>Source</th>
-                                        <th>Collection</th>
-                                        <th>Type</th>
-                                        <th>Chunks</th>
-                                        <th>Summary / Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="log-body">
-                                    <tr class="empty-row">
-                                        <td colspan="5">No files or links ingested in this session yet.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                        <!-- Ingestion Log / Status Dashboard -->
+                        <div class="glass-card log-card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-list-check"></i>
+                                <h2>Ingestion Logs</h2>
+                            </div>
+                            <div class="log-table-wrapper" style="max-height: 300px; overflow-y: auto;">
+                                <table class="log-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Source</th>
+                                            <th>Collection</th>
+                                            <th>Type</th>
+                                            <th>Chunks</th>
+                                            <th>Summary / Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="log-body">
+                                        <tr class="empty-row">
+                                            <td colspan="5">No files or links ingested in this session yet.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -246,6 +270,18 @@
                 </section>
             </div>
         </main>
+    <!-- Summary Modal -->
+    <div id="summary-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(8px); align-items: center; justify-content: center;">
+        <div class="glass-card modal-content" style="max-width: 650px; width: 90%; margin: auto; padding: 2.5rem; position: relative; border-radius: var(--border-radius); border: 1px solid var(--border-color); animation: modalFadeIn 0.3s ease;">
+            <span class="close-modal-btn" id="close-modal-btn" style="position: absolute; right: 20px; top: 20px; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; transition: color 0.2s;"><i class="fa-solid fa-xmark"></i></span>
+            <div class="modal-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-color); font-size: 1.4rem; text-shadow: 0 0 8px var(--accent-glow);"></i>
+                <h2 id="modal-title" style="font-size: 1.3rem; font-weight: 700; margin: 0; word-break: break-all;">AI Document Summary</h2>
+            </div>
+            <div id="modal-body" style="max-height: 400px; overflow-y: auto; color: var(--text-primary); line-height: 1.6; font-size: 0.95rem;">
+                <p>Generating summary...</p>
+            </div>
+        </div>
     </div>
 </body>
 </html>
