@@ -6,6 +6,7 @@ from app.api.url import router as url_router
 from app.api.search import router as search_router
 from app.api.rag import router as rag_router
 from app.api.summarize import router as summarize_router
+from app.api.flashcards import router as flashcards_router
 
 app = FastAPI(
     title="AI Knowledge Operating System API",
@@ -20,6 +21,7 @@ app.include_router(url_router)
 app.include_router(search_router)
 app.include_router(rag_router, prefix="/api", tags=["RAG"])
 app.include_router(summarize_router)
+app.include_router(flashcards_router)
 
 # Configure CORS
 app.add_middleware(
